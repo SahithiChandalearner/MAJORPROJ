@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Voice Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    #greeting, #transcript, #response, #historyDiv {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+    .button {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      cursor: pointer;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Voice Assistant</h1>
+  <!-- Display the greeting passed from Flask -->
+  <div id="greeting">{{ greeting }}</div>
+  <p>Click the mic button, speak your command, and wait for the response.</p>
+  <button id="mic-button" class="button">🎤 Start Speaking</button>
+  <button id="history-button" class="button">Show History</button>
+  <div id="transcript">Your speech: </div>
+  <div id="response">Assistant response: </div>
+  <div id="historyDiv"></div>
+
+  <script>
+    // On page load, speak the greeting automatically.
+    window.onload = function() {
+      var greetingText = document.getElementById("greeting").innerText;
+      if (greetingText) {
+        var utterance = new SpeechSynthesisUtterance(greetingText);
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+
+    // Check for SpeechRecognition API support.
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support Speech Recognition. Please try Google Chrome.");
+    } else {
+      const micButton = document.getElementById("mic-button");
+      const transcriptDiv = document.getElementById("transcript");
+      const responseDiv = document.getElementById("response");
+      const historyDiv = document.getElementById("historyDiv");
+      
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      
+      // Start speech recognition when the mic button is clicked.
+      micButton.addEventListener("click", function() {
+        transcriptDiv.innerHTML = "Listening...";
+        recognition.start();
+      });
+      
+      // When speech is recognized:
+      recognition.addEventListener("result", function(event) {
+        const speechResult = event.results[0][0].transcript;
+        transcriptDiv.innerHTML = "Your speech: " + speechResult;
+        
+        // Send the recognized text to the Flask backend.
+        fetch("/process", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ query: speechResult })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.result) {
+            responseDiv.innerHTML = "Assistant response: " + data.result;
+            // Speak out the assistant's response.
+            var utterance = new SpeechSynthesisUtterance(data.result);
+            window.speechSynthesis.speak(utterance);
+          } else if (data.error) {
+            responseDiv.innerHTML = "Error: " + data.error;
+          }
+        })
+        .catch(error => {
+          console.error("Error:", error);
+          responseDiv.innerHTML = "An error occurred.";
+        });
+      });
+      
+      recognition.addEventListener("speechend", function() {
+        recognition.stop();
+      });
+      
+      recognition.addEventListener("error", function(event) {
+        responseDiv.innerHTML = "Error in recognition: " + event.error;
+      });
+      
+      // Fetch and display command history when the history button is clicked.
+      document.getElementById("history-button").addEventListener("click", function(){
+          fetch("/history")
+            .then(response => response.json())
+            .then(data => {
+                let html = "<h3>Command History:</h3><ul>";
+                data.forEach(item => {
+                   html += `<li><strong>${item.query}</strong>: ${item.result}</li>`;
+                });
+                html += "</ul>";
+                historyDiv.innerHTML = html;
+            })
+            .catch(error => {
+                console.error("Error fetching history:", error);
+                historyDiv.innerHTML = "Error fetching history.";
+            });
+      });
+    }
+  </script>
+</body>
+</html>

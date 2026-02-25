@@ -1,0 +1,8 @@
+Flask
+wikipedia-api
+pyjokes
+pyautogui
+requests
+psutil
+pillow
+

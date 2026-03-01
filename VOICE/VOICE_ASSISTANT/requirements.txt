@@ -1,8 +1,7 @@
 Flask
-wikipedia-api
-pyjokes
 pyautogui
-requests
+pyjokes
 psutil
-pillow
-
+requests
+wikipedia
+wikipedia-api

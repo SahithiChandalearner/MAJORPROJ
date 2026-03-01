@@ -3,4 +3,5 @@ pyjokes
 requests
 wikipedia
 wikipedia-api
-gunicorn
+pyautogui
+psutil

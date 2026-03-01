@@ -1,7 +1,5 @@
 Flask
-pyautogui
 pyjokes
-psutil
 requests
 wikipedia
 wikipedia-api
